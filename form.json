@@ -60,8 +60,25 @@
     {
       "id": "gender",
       "label": "Gender",
-      "type": "free-full",
-      "required": false
+      "type": "radio",
+      "required": true,
+      "options": [
+        {
+          "value": "m",
+          "label": "M",
+          "required": false
+        },
+        {
+          "value": "f",
+          "label": "F",
+          "required": false
+        },
+        {
+          "value": "none-of-your-buisness",
+          "label": "None of your buisness",
+          "required": false
+        }
+      ]
     },
     {
       "id": "preferred-pronouns",
@@ -72,40 +89,51 @@
     {
       "id": "marital-status",
       "label": "Marital Status",
-      "type": "dropdown",
-      "required": false,
+      "type": "radio",
+      "required": true,
       "options": [
         {
           "value": "married",
-          "label": "Married"
+          "label": "Married",
+          "required": true
         },
         {
           "value": "single",
-          "label": "Single"
+          "label": "Single",
+          "required": true
         },
         {
           "value": "divorced",
-          "label": "Divorced"
+          "label": "Divorced",
+          "required": true
         },
         {
           "value": "widowed",
-          "label": "Widowed"
+          "label": "Widowed",
+          "required": true
         }
       ]
     },
     {
       "id": "preferred-language",
       "label": "Preferred Language",
-      "type": "dropdown",
+      "type": "radio",
       "required": false,
       "options": [
         {
           "value": "english",
-          "label": "English"
+          "label": "English",
+          "required": true
         },
         {
           "value": "french",
-          "label": "French"
+          "label": "French",
+          "required": true
+        },
+        {
+          "value": "esperanto",
+          "label": "Esperanto",
+          "required": false
         }
       ]
     },
