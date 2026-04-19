@@ -1,79 +1,127 @@
 {
-  "title": "test form built with claude api",
-  "subtitle": "Please fill in all fields",
+  "title": "Profile",
+  "subtitle": "Personal Information",
   "submitLabel": "Submit",
   "fields": [
     {
-      "id": "first-name-mo27xlnq",
+      "id": "first-name",
       "label": "First Name",
       "type": "alpha-full",
       "required": true
     },
     {
-      "id": "last-name-mo27xwh1",
+      "id": "preferred-name",
+      "label": "Preferred Name",
+      "type": "alpha-full",
+      "required": false
+    },
+    {
+      "id": "last-name",
       "label": "Last Name",
       "type": "alpha-full",
       "required": true
     },
     {
-      "id": "date-of-birth-mo27zb1i",
+      "id": "health-card",
+      "label": "Health Card Number",
+      "type": "split",
+      "required": true,
+      "pattern": "AAAA NNNN NNNN"
+    },
+    {
+      "id": "dob",
       "label": "Date of Birth",
       "type": "split",
       "required": true,
       "pattern": "NN-MMM-NNNN"
     },
     {
-      "id": "sex-mo2833gv",
-      "label": "Sex",
+      "id": "age",
+      "label": "Age",
+      "type": "free-full",
+      "required": false
+    },
+    {
+      "id": "sex-at-birth",
+      "label": "Sex at birth",
       "type": "radio",
       "required": true,
       "options": [
         {
           "value": "male",
-          "label": "Male",
-          "required": false
+          "label": "Male"
         },
         {
           "value": "female",
-          "label": "Female",
-          "required": false
-        },
-        {
-          "value": "other",
-          "label": "Other",
-          "required": false
+          "label": "Female"
         }
       ]
     },
     {
-      "id": "preferences-mo281dn1",
-      "label": "Preferences",
-      "type": "checkbox",
-      "required": true,
+      "id": "gender",
+      "label": "Gender",
+      "type": "free-full",
+      "required": false
+    },
+    {
+      "id": "preferred-pronouns",
+      "label": "Preferred Pronouns",
+      "type": "free-full",
+      "required": false
+    },
+    {
+      "id": "marital-status",
+      "label": "Marital Status",
+      "type": "dropdown",
+      "required": false,
       "options": [
         {
-          "value": "monday",
-          "label": "Monday",
-          "required": false
+          "value": "married",
+          "label": "Married"
         },
         {
-          "value": "tuesday",
-          "label": "Tuesday",
-          "required": false
+          "value": "single",
+          "label": "Single"
         },
         {
-          "value": "wednesday",
-          "label": "Wednesday",
-          "required": false
+          "value": "divorced",
+          "label": "Divorced"
+        },
+        {
+          "value": "widowed",
+          "label": "Widowed"
         }
       ]
     },
     {
-      "id": "ramq-mo27zz0c",
-      "label": "RAMQ",
+      "id": "preferred-language",
+      "label": "Preferred Language",
+      "type": "dropdown",
+      "required": false,
+      "options": [
+        {
+          "value": "english",
+          "label": "English"
+        },
+        {
+          "value": "french",
+          "label": "French"
+        }
+      ]
+    },
+    {
+      "id": "primary-mobile",
+      "label": "Primary • Mobile",
       "type": "split",
-      "required": true,
-      "pattern": "AAAA NNNNNNNN"
+      "required": false,
+      "pattern": "NNN NNN-NNNN"
+    },
+    {
+      "id": "primary-home",
+      "label": "Primary • Home",
+      "type": "split",
+      "required": false,
+      "pattern": "NNN NNN-NNNN"
     }
   ],
   "optionSets": {
