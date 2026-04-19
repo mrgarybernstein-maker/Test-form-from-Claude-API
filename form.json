@@ -1,0 +1,135 @@
+{
+  "title": "test form built with claude api",
+  "subtitle": "Please fill in all fields",
+  "submitLabel": "Submit",
+  "fields": [
+    {
+      "id": "first-name-mo27xlnq",
+      "label": "First Name",
+      "type": "alpha-full",
+      "required": true
+    },
+    {
+      "id": "last-name-mo27xwh1",
+      "label": "Last Name",
+      "type": "alpha-full",
+      "required": true
+    },
+    {
+      "id": "date-of-birth-mo27zb1i",
+      "label": "Date of Birth",
+      "type": "split",
+      "required": true,
+      "pattern": "NN-MMM-NNNN"
+    },
+    {
+      "id": "sex-mo2833gv",
+      "label": "Sex",
+      "type": "radio",
+      "required": true,
+      "options": [
+        {
+          "value": "male",
+          "label": "Male",
+          "required": false
+        },
+        {
+          "value": "female",
+          "label": "Female",
+          "required": false
+        },
+        {
+          "value": "other",
+          "label": "Other",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "preferences-mo281dn1",
+      "label": "Preferences",
+      "type": "checkbox",
+      "required": true,
+      "options": [
+        {
+          "value": "monday",
+          "label": "Monday",
+          "required": false
+        },
+        {
+          "value": "tuesday",
+          "label": "Tuesday",
+          "required": false
+        },
+        {
+          "value": "wednesday",
+          "label": "Wednesday",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "ramq-mo27zz0c",
+      "label": "RAMQ",
+      "type": "split",
+      "required": true,
+      "pattern": "AAAA NNNNNNNN"
+    }
+  ],
+  "optionSets": {
+    "provinces": [
+      {
+        "value": "AB",
+        "label": "AB – Alberta"
+      },
+      {
+        "value": "BC",
+        "label": "BC – British Columbia"
+      },
+      {
+        "value": "MB",
+        "label": "MB – Manitoba"
+      },
+      {
+        "value": "NB",
+        "label": "NB – New Brunswick"
+      },
+      {
+        "value": "NL",
+        "label": "NL – Newfoundland & Labrador"
+      },
+      {
+        "value": "NS",
+        "label": "NS – Nova Scotia"
+      },
+      {
+        "value": "NT",
+        "label": "NT – Northwest Territories"
+      },
+      {
+        "value": "NU",
+        "label": "NU – Nunavut"
+      },
+      {
+        "value": "ON",
+        "label": "ON – Ontario"
+      },
+      {
+        "value": "PE",
+        "label": "PE – Prince Edward Island"
+      },
+      {
+        "value": "QC",
+        "label": "QC – Québec"
+      },
+      {
+        "value": "SK",
+        "label": "SK – Saskatchewan"
+      },
+      {
+        "value": "YT",
+        "label": "YT – Yukon"
+      }
+    ]
+  }
+}
