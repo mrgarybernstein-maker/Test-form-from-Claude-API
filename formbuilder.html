@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form Builder</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#1a1a1a;min-height:100vh}
+.app{display:grid;grid-template-columns:380px 1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
+.topbar{grid-column:1/-1;background:#1a1a1a;display:flex;align-items:center;padding:0 1.5rem;gap:1rem}
+.topbar h1{color:#fff;font-size:16px;font-weight:600;flex:1}
+.sidebar{background:#fff;border-right:1px solid #e0e0e0;overflow-y:auto;display:flex;flex-direction:column}
+.preview-pane{background:#f0f2f5;overflow-y:auto;padding:2rem;display:flex;flex-direction:column;align-items:center}
+.tabs{display:flex;border-bottom:1px solid #e8e8e8;background:#fafafa;flex-shrink:0}
+.tab{padding:12px 14px;font-size:13px;font-weight:500;color:#888;cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;white-space:nowrap}
+.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a}
+.tab-panel{display:none;padding:1rem}
+.tab-panel.active{display:block}
+.section-title{font-size:11px;font-weight:600;color:#aaa;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;margin-top:16px}
+.section-title:first-child{margin-top:0}
+label{font-size:13px;color:#555;display:block;margin-bottom:4px}
+input[type=text],input[type=password],select,textarea{width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;color:#1a1a1a;background:#fafafa;outline:none;transition:border-color 0.15s}
+input[type=text]:focus,input[type=password]:focus,select:focus,textarea:focus{border-color:#4a90d9;background:#fff;box-shadow:0 0 0 3px rgba(74,144,217,0.12)}
+input[type=color]{width:100%;height:38px;border:1.5px solid #e0e0e0;border-radius:8px;padding:2px;cursor:pointer;background:#fafafa}
+.form-row{margin-bottom:10px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:background 0.15s,transform 0.1s}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:#1a1a1a;color:#fff}.btn-primary:hover{background:#333}
+.btn-blue{background:#2a6ade;color:#fff}.btn-blue:hover{background:#1a5ace}
+.btn-green{background:#2a9a5a;color:#fff}.btn-green:hover{background:#1a8a4a}
+.btn-ghost{background:#f0f0f0;color:#333}.btn-ghost:hover{background:#e0e0e0}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-full{width:100%;justify-content:center}
+.field-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.field-item{background:#fafafa;border:1.5px solid #e8e8e8;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:grab}
+.field-item.drag-over{border-color:#4a90d9;background:#f0f6ff}
+.field-item.dragging{opacity:0.4}
+.field-icon{font-size:16px;flex-shrink:0}
+.field-info{flex:1;min-width:0}
+.field-info-label{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.field-info-sub{font-size:11px;color:#aaa;margin-top:1px}
+.field-actions{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{width:28px;height:28px;border:none;border-radius:6px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#aaa;transition:background 0.1s}
+.icon-btn:hover{background:#f0f0f0;color:#333}
+.icon-btn.del:hover{background:#fef0f0;color:#e05252}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:1.5rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.2)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:1rem}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;padding-top:1rem;border-top:1px solid #f0f0f0}
+.options-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.option-row{display:flex;gap:6px;align-items:center}
+.option-row input{flex:1}
+.req-badge{font-size:10px;padding:2px 6px;border-radius:4px;cursor:pointer;border:1px solid #e0e0e0;background:#f7f7f7;color:#888;white-space:nowrap;flex-shrink:0}
+.req-badge.required{background:#fff0f0;border-color:#f0a0a0;color:#c03232}
+.drop-zone{border:2px dashed #d0d0d0;border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:border-color 0.15s,background 0.15s;margin-bottom:10px}
+.drop-zone:hover,.drop-zone.drag-active{border-color:#4a90d9;background:#f0f6ff}
+.drop-zone p{font-size:13px;color:#888;margin-top:6px}
+#drop-preview{max-width:100%;border-radius:8px;margin-top:10px;display:none}
+.api-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:99px}
+.api-status.ok{background:#e8f8ee;color:#1a7a45}
+.api-status.err{background:#fef0f0;color:#c03232}
+.api-status.idle{background:#f0f0f0;color:#888}
+.preview-card{background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:480px;box-shadow:0 1px 3px rgba(0,0,0,0.08),0 8px 24px rgba(0,0,0,0.06)}
+.preview-card h2{font-size:18px;font-weight:600;margin-bottom:4px}
+.preview-card .sub{font-size:13px;color:#888;margin-bottom:1.5rem}
+.pv-field{margin-bottom:1rem}
+.pv-label{font-size:12px;font-weight:500;color:#555;margin-bottom:5px}
+.pv-input{border:1.5px solid #e0e0e0;border-radius:8px;height:48px;width:100%;background:#fafafa}
+.pv-seg-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.pv-seg{border:1.5px solid #e0e0e0;border-radius:8px;height:48px;background:#fafafa;display:flex;align-items:center;justify-content:center;font-size:12px;color:#bbb;flex-shrink:0}
+.pv-sep{font-size:18px;color:#ccc;font-weight:300}
+.pv-option{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;background:#fafafa;margin-bottom:6px}
+.pv-dot{width:18px;height:18px;border-radius:50%;border:2px solid #ccc;flex-shrink:0}
+.pv-box{width:18px;height:18px;border-radius:4px;border:2px solid #ccc;flex-shrink:0}
+.pv-opt-label{font-size:13px;color:#555}
+.pv-btn{width:100%;padding:12px;border:none;border-radius:8px;background:#1a1a1a;color:#fff;font-size:14px;font-weight:600;margin-top:1rem;cursor:default}
+.ai-thinking{display:none;text-align:center;padding:1rem;font-size:13px;color:#888}
+.ai-thinking.active{display:block}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid #e0e0e0;border-top-color:#4a90d9;border-radius:50%;animation:spin 0.7s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.export-file{background:#fafafa;border:1.5px solid #e8e8e8;border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.export-file-icon{font-size:24px}
+.export-file-info{flex:1}
+.export-file-name{font-size:13px;font-weight:600}
+.export-file-desc{font-size:11px;color:#aaa;margin-top:2px}
+.hint{font-size:12px;color:#aaa;margin-top:4px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <h1>⚙️ Form Builder</h1>
+    <span id="api-badge" class="api-status idle">⬤ No API key</span>
+  </div>
+
+  <div class="sidebar">
+    <div class="tabs">
+      <div class="tab active" data-tab="fields">Fields</div>
+      <div class="tab" data-tab="theme">Theme</div>
+      <div class="tab" data-tab="ai">AI Import</div>
+      <div class="tab" data-tab="export">Export</div>
+      <div class="tab" data-tab="settings">⚙</div>
+    </div>
+
+    <!-- FIELDS -->
+    <div class="tab-panel active" id="tab-fields">
+      <div class="form-row"><label>Form title</label><input type="text" id="form-title" value="My Form" oninput="refreshPreview()"></div>
+      <div class="form-row"><label>Subtitle</label><input type="text" id="form-subtitle" value="Please fill in all fields" oninput="refreshPreview()"></div>
+      <div class="form-row"><label>Submit button label</label><input type="text" id="form-submit-label" value="Submit" oninput="refreshPreview()"></div>
+      <div class="section-title">Fields</div>
+      <div class="field-list" id="field-list"></div>
+      <button class="btn btn-ghost btn-full" onclick="openAddField()">+ Add field</button>
+    </div>
+
+    <!-- THEME -->
+    <div class="tab-panel" id="tab-theme">
+      <div class="section-title">Colours</div>
+      <div class="form-row-2">
+        <div><label>Background</label><input type="color" id="th-bg" value="#f5f5f3" oninput="refreshPreview()"></div>
+        <div><label>Card</label><input type="color" id="th-card" value="#ffffff" oninput="refreshPreview()"></div>
+      </div>
+      <div class="form-row-2">
+        <div><label>Button</label><input type="color" id="th-btn" value="#1a1a1a" oninput="refreshPreview()"></div>
+        <div><label>Button text</label><input type="color" id="th-btn-text" value="#ffffff" oninput="refreshPreview()"></div>
+      </div>
+      <div class="form-row-2">
+        <div><label>Field border</label><input type="color" id="th-border" value="#e0e0e0" oninput="refreshPreview()"></div>
+        <div><label>Focus colour</label><input type="color" id="th-focus" value="#4a90d9" oninput="refreshPreview()"></div>
+      </div>
+      <div class="form-row-2">
+        <div><label>Title</label><input type="color" id="th-title" value="#1a1a1a" oninput="refreshPreview()"></div>
+        <div><label>Labels</label><input type="color" id="th-label" value="#555555" oninput="refreshPreview()"></div>
+      </div>
+      <div class="section-title">Typography & Layout</div>
+      <div class="form-row">
+        <label>Font</label>
+        <select id="th-font" oninput="refreshPreview()">
+          <option value="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">System (default)</option>
+          <option value="Georgia,serif">Georgia</option>
+          <option value="'Times New Roman',serif">Times New Roman</option>
+          <option value="Arial,sans-serif">Arial</option>
+          <option value="Verdana,sans-serif">Verdana</option>
+        </select>
+      </div>
+      <div class="form-row-2">
+        <div><label>Card width (px)</label><input type="text" id="th-width" value="480" oninput="refreshPreview()"></div>
+        <div><label>Corner radius (px)</label><input type="text" id="th-radius" value="16" oninput="refreshPreview()"></div>
+      </div>
+      <div class="section-title">Logo</div>
+      <div class="form-row"><label>Filename on server</label><input type="text" id="th-logo" placeholder="e.g. myLogo.png"></div>
+      <div class="form-row-2">
+        <div><label>Width (px)</label><input type="text" id="th-logo-width" value="120"></div>
+        <div><label>Position</label><select id="th-logo-pos"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div>
+      </div>
+      <div class="form-row"><label>Dark mode</label><select id="th-dark"><option value="auto">Auto (follows OS)</option><option value="off">Always light</option></select></div>
+    </div>
+
+    <!-- AI IMPORT -->
+    <div class="tab-panel" id="tab-ai">
+      <p class="hint" style="margin-bottom:12px">Drop a photo, click to browse, press ⌘V to paste a screenshot, or enter a URL below. Claude reads it and generates the field list automatically.</p>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div style="font-size:32px">📷</div>
+        <p>Drop image, click to browse, or press ⌘V to paste</p>
+        <img id="drop-preview">
+      </div>
+      <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFileSelect(this)">
+      <div class="form-row"><label>Or paste a URL</label><input type="text" id="ai-url" placeholder="https://example.com/registration-form"></div>
+      <div class="form-row"><label>Extra instructions (optional)</label><textarea id="ai-instructions" rows="2" placeholder="e.g. All fields required, use Canadian phone format NNN NNN NNNN"></textarea></div>
+      <button class="btn btn-blue btn-full" onclick="runAIImport()">✨ Import with Claude</button>
+      <div class="ai-thinking" id="ai-thinking"><span class="spinner"></span>Claude is reading your form…</div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="tab-panel" id="tab-export">
+      <p class="hint" style="margin-bottom:14px">Download all three files then upload them to your GitHub repository. Right-click each download link and choose <strong>Download Linked File As</strong> to save with the correct filename.</p>
+      <div class="export-file">
+        <div class="export-file-icon">📋</div>
+        <div class="export-file-info"><div class="export-file-name">form.json</div><div class="export-file-desc">Field definitions</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="downloadFormJSON()">Download</button>
+      </div>
+      <div class="export-file">
+        <div class="export-file-icon">🎨</div>
+        <div class="export-file-info"><div class="export-file-name">theme.json</div><div class="export-file-desc">Visual settings</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="downloadThemeJSON()">Download</button>
+      </div>
+      <div class="export-file">
+        <div class="export-file-icon">⚙️</div>
+        <div class="export-file-info"><div class="export-file-name">index.html</div><div class="export-file-desc">Form engine — place in same folder</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="downloadEngine()">Download</button>
+      </div>
+      <div style="margin-top:12px"><button class="btn btn-green btn-full" onclick="downloadAll()">⬇️ Download all three</button></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="tab-panel" id="tab-settings">
+      <div class="section-title">Anthropic API Key</div>
+      <p class="hint" style="margin-bottom:10px">Required for AI Import. Get your key at console.anthropic.com. Stored only in your browser — never sent anywhere except directly to Anthropic.</p>
+      <div class="form-row"><label>API Key</label><input type="password" id="api-key-input" placeholder="sk-ant-api03-..." oninput="saveAPIKey()"></div>
+      <div id="api-key-status" class="hint"></div>
+    </div>
+
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-pane" id="preview-pane">
+    <div class="preview-card" id="preview-card">
+      <h2 id="pv-title">My Form</h2>
+      <p class="sub" id="pv-subtitle">Please fill in all fields</p>
+      <div id="pv-fields"></div>
+      <button class="pv-btn" id="pv-submit">Submit</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Field Modal -->
+<div class="modal-overlay" id="field-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Add field</div>
+    <div class="form-row"><label>Label</label><input type="text" id="f-label" placeholder="e.g. Date of birth"></div>
+    <div class="form-row">
+      <label>Type</label>
+      <select id="f-type" onchange="onTypeChange()">
+        <option value="alpha-full">Text — letters only (names)</option>
+        <option value="free-full">Text — any characters (email, notes)</option>
+        <option value="split">Segmented — driven by a pattern</option>
+        <option value="address">Address (number + street + unit)</option>
+        <option value="city-province">City + Province dropdown</option>
+        <option value="radio">Radio buttons — pick one</option>
+        <option value="checkbox">Checkboxes — pick many</option>
+        <option value="dropdown">Dropdown list</option>
+      </select>
+    </div>
+    <div class="form-row" id="f-pattern-row" style="display:none">
+      <label>Pattern</label>
+      <input type="text" id="f-pattern" placeholder="e.g. NN-MMM-NNNN">
+      <div class="hint">N = digit &nbsp;·&nbsp; A = letter &nbsp;·&nbsp; MMM = month name &nbsp;·&nbsp; - &nbsp;space&nbsp; . = separators</div>
+    </div>
+    <div id="f-options-section" style="display:none">
+      <div class="section-title">Options</div>
+      <div class="options-list" id="f-options-list"></div>
+      <button class="btn btn-ghost btn-sm" onclick="addOption()">+ Add option</button>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="f-required" checked style="width:auto">
+        Required field
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveField()">Save field</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── State ── */
+let fields = [];
+let editingIdx = null;
+let dragSrcIdx = null;
+let pendingImageBase64 = null;
+let pendingImageType   = null;
+
+const PROVINCES = [
+  {value:'AB',label:'AB – Alberta'},{value:'BC',label:'BC – British Columbia'},
+  {value:'MB',label:'MB – Manitoba'},{value:'NB',label:'NB – New Brunswick'},
+  {value:'NL',label:'NL – Newfoundland & Labrador'},{value:'NS',label:'NS – Nova Scotia'},
+  {value:'NT',label:'NT – Northwest Territories'},{value:'NU',label:'NU – Nunavut'},
+  {value:'ON',label:'ON – Ontario'},{value:'PE',label:'PE – Prince Edward Island'},
+  {value:'QC',label:'QC – Québec'},{value:'SK',label:'SK – Saskatchewan'},
+  {value:'YT',label:'YT – Yukon'}
+];
+
+const TYPE_ICONS  = {'alpha-full':'🔤','free-full':'✏️','split':'🔢','address':'🏠','city-province':'🏙️','radio':'🔘','checkbox':'☑️','dropdown':'▾'};
+const TYPE_LABELS = {'alpha-full':'Letters only','free-full':'Free text','split':'Segmented','address':'Address','city-province':'City + Province','radio':'Radio','checkbox':'Checkboxes','dropdown':'Dropdown'};
+
+/* ── Tabs ── */
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+/* ── API Key ── */
+function saveAPIKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  localStorage.setItem('fb_api_key', key);
+  updateAPIBadge(key);
+}
+function loadAPIKey() {
+  const key = localStorage.getItem('fb_api_key') || '';
+  document.getElementById('api-key-input').value = key;
+  updateAPIBadge(key);
+}
+function updateAPIBadge(key) {
+  const badge  = document.getElementById('api-badge');
+  const status = document.getElementById('api-key-status');
+  if (key && key.startsWith('sk-ant-')) {
+    badge.className='api-status ok'; badge.textContent='⬤ API key ready';
+    status.textContent='Key saved in browser storage.';
+  } else if (key) {
+    badge.className='api-status err'; badge.textContent='⬤ Invalid key';
+    status.textContent='Key should start with sk-ant-';
+  } else {
+    badge.className='api-status idle'; badge.textContent='⬤ No API key';
+    status.textContent='';
+  }
+}
+
+/* ── Field list ── */
+function renderFieldList() {
+  const list = document.getElementById('field-list');
+  if (!fields.length) {
+    list.innerHTML='<p style="font-size:13px;color:#bbb;text-align:center;padding:1rem 0">No fields yet — add one or use AI Import</p>';
+    return;
+  }
+  list.innerHTML='';
+  fields.forEach((f,idx)=>{
+    const sub = f.type==='split' ? f.pattern :
+                (f.type==='radio'||f.type==='checkbox') ? (f.options||[]).map(o=>o.label).join(', ') :
+                TYPE_LABELS[f.type]||f.type;
+    const item=document.createElement('div'); item.className='field-item'; item.draggable=true; item.dataset.idx=idx;
+    item.innerHTML=`
+      <span class="field-icon">${TYPE_ICONS[f.type]||'📝'}</span>
+      <div class="field-info">
+        <div class="field-info-label">${f.label}${f.required===false?' <span style="color:#bbb;font-size:11px">(opt)</span>':''}</div>
+        <div class="field-info-sub">${sub}</div>
+      </div>
+      <div class="field-actions">
+        <button class="icon-btn" onclick="openEditField(${idx})">✏️</button>
+        <button class="icon-btn del" onclick="deleteField(${idx})">🗑️</button>
+      </div>`;
+    item.addEventListener('dragstart', e=>{ dragSrcIdx=idx; item.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    item.addEventListener('dragend',   ()=>{ item.classList.remove('dragging'); document.querySelectorAll('.field-item').forEach(i=>i.classList.remove('drag-over')); });
+    item.addEventListener('dragover',  e=>{ e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', ()=>item.classList.remove('drag-over'));
+    item.addEventListener('drop',      e=>{ e.preventDefault(); if(dragSrcIdx!=null&&dragSrcIdx!==idx){ const m=fields.splice(dragSrcIdx,1)[0]; fields.splice(idx,0,m); dragSrcIdx=null; renderFieldList(); refreshPreview(); } });
+    list.appendChild(item);
+  });
+}
+
+function deleteField(idx) {
+  if(confirm(`Delete "${fields[idx].label}"?`)){ fields.splice(idx,1); renderFieldList(); refreshPreview(); }
+}
+
+/* ── Modal ── */
+function openAddField() {
+  editingIdx=null;
+  document.getElementById('modal-title').textContent='Add field';
+  document.getElementById('f-label').value='';
+  document.getElementById('f-type').value='alpha-full';
+  document.getElementById('f-pattern').value='';
+  document.getElementById('f-required').checked=true;
+  document.getElementById('f-options-list').innerHTML='';
+  onTypeChange();
+  document.getElementById('field-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('f-label').focus(),50);
+}
+function openEditField(idx) {
+  editingIdx=idx; const f=fields[idx];
+  document.getElementById('modal-title').textContent='Edit field';
+  document.getElementById('f-label').value=f.label||'';
+  document.getElementById('f-type').value=f.type||'alpha-full';
+  document.getElementById('f-pattern').value=f.pattern||'';
+  document.getElementById('f-required').checked=f.required!==false;
+  document.getElementById('f-options-list').innerHTML='';
+  onTypeChange();
+  if(f.options) f.options.forEach(o=>addOption(o.label,o.value,o.required!==false));
+  document.getElementById('field-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('field-modal').classList.remove('open'); }
+function onTypeChange() {
+  const t=document.getElementById('f-type').value;
+  document.getElementById('f-pattern-row').style.display    = t==='split'?'':'none';
+  document.getElementById('f-options-section').style.display= (t==='radio'||t==='checkbox')?'':'none';
+}
+function addOption(label='',value='',required=false) {
+  const list=document.getElementById('f-options-list');
+  const row=document.createElement('div'); row.className='option-row';
+  const inp=document.createElement('input'); inp.type='text'; inp.placeholder='Option label'; inp.value=label;
+  const req=document.createElement('span'); req.className='req-badge'+(required?' required':''); req.textContent=required?'Required':'Optional';
+  req.addEventListener('click',()=>{ req.classList.toggle('required'); req.textContent=req.classList.contains('required')?'Required':'Optional'; });
+  const del=document.createElement('button'); del.className='icon-btn del'; del.textContent='✕';
+  del.addEventListener('click',()=>row.remove());
+  row.appendChild(inp); row.appendChild(req); row.appendChild(del);
+  list.appendChild(row); inp.focus();
+}
+function saveField() {
+  const label=document.getElementById('f-label').value.trim();
+  const type=document.getElementById('f-type').value;
+  const pattern=document.getElementById('f-pattern').value.trim();
+  const required=document.getElementById('f-required').checked;
+  if(!label){alert('Please enter a label');return;}
+  if(type==='split'&&!pattern){alert('Please enter a pattern');return;}
+  const id=(editingIdx!==null?fields[editingIdx].id:label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Date.now().toString(36));
+  const field={id,label,type,required};
+  if(type==='split') field.pattern=pattern;
+  if(type==='radio'||type==='checkbox'){
+    const rows=document.querySelectorAll('#f-options-list .option-row');
+    field.options=[];
+    rows.forEach(row=>{
+      const lbl=row.querySelector('input').value.trim();
+      const req=row.querySelector('.req-badge').classList.contains('required');
+      if(lbl) field.options.push({value:lbl.toLowerCase().replace(/\s+/g,'-'),label:lbl,required:req});
+    });
+    if(!field.options.length){alert('Please add at least one option');return;}
+  }
+  if(editingIdx!==null) fields[editingIdx]=field; else fields.push(field);
+  closeModal(); renderFieldList(); refreshPreview();
+}
+
+/* ── Preview ── */
+function parsePatternPreview(pattern){
+  const tokens=[]; let i=0;
+  while(i<pattern.length){
+    const ch=pattern[i];
+    if(ch==='-'||ch===' '||ch==='.'){ tokens.push({kind:'sep',char:ch}); i++; continue; }
+    let run=''; while(i<pattern.length&&pattern[i]===ch){run+=ch;i++;}
+    const isMonth=(ch==='M'&&run.length===3);
+    tokens.push({kind:'seg',placeholder:isMonth?'MMM':run,width:Math.max(46,run.length*22+16)});
+  }
+  return tokens;
+}
+
+function refreshPreview() {
+  const title=document.getElementById('form-title').value;
+  const subtitle=document.getElementById('form-subtitle').value;
+  const submitLbl=document.getElementById('form-submit-label').value;
+  const btnColor=document.getElementById('th-btn').value;
+  const btnText=document.getElementById('th-btn-text').value;
+  const cardColor=document.getElementById('th-card').value;
+  const borderColor=document.getElementById('th-border').value;
+  const titleColor=document.getElementById('th-title').value;
+  const labelColor=document.getElementById('th-label').value;
+  const bgColor=document.getElementById('th-bg').value;
+  const cardWidth=document.getElementById('th-width').value||'480';
+  const radius=document.getElementById('th-radius').value||'16';
+  const font=document.getElementById('th-font').value;
+
+  document.getElementById('preview-pane').style.background=bgColor;
+  const card=document.getElementById('preview-card');
+  card.style.background=cardColor; card.style.borderRadius=radius+'px';
+  card.style.maxWidth=cardWidth+'px'; card.style.fontFamily=font;
+  document.getElementById('pv-title').textContent=title;
+  document.getElementById('pv-title').style.color=titleColor;
+  document.getElementById('pv-subtitle').textContent=subtitle;
+  document.getElementById('pv-submit').textContent=submitLbl;
+  document.getElementById('pv-submit').style.cssText=`width:100%;padding:12px;border:none;border-radius:${radius}px;background:${btnColor};color:${btnText};font-size:14px;font-weight:600;margin-top:1rem;cursor:default`;
+
+  const container=document.getElementById('pv-fields'); container.innerHTML='';
+  fields.forEach((f,idx)=>{
+    if(idx>0){ const hr=document.createElement('hr'); hr.style.cssText='border:none;border-top:1px solid #f0f0f0;margin:0.5rem 0 1rem'; container.appendChild(hr); }
+    const wrap=document.createElement('div'); wrap.className='pv-field';
+    const lbl=document.createElement('div'); lbl.className='pv-label'; lbl.textContent=f.label; lbl.style.color=labelColor;
+    wrap.appendChild(lbl);
+
+    if(f.type==='alpha-full'||f.type==='free-full'){
+      const inp=document.createElement('div'); inp.className='pv-input'; inp.style.cssText=`border-color:${borderColor};border-radius:${radius}px`; wrap.appendChild(inp);
+    } else if(f.type==='split'){
+      const row=document.createElement('div'); row.className='pv-seg-row';
+      parsePatternPreview(f.pattern).forEach(tok=>{
+        if(tok.kind==='sep'){ const s=document.createElement('span'); s.className='pv-sep'; s.textContent=tok.char===' '?'':tok.char; if(tok.char===' ') s.style.width='8px'; row.appendChild(s); }
+        else { const seg=document.createElement('div'); seg.className='pv-seg'; seg.style.cssText=`width:${tok.width}px;border-color:${borderColor};border-radius:8px`; seg.textContent=tok.placeholder; row.appendChild(seg); }
+      });
+      wrap.appendChild(row);
+    } else if(f.type==='address'){
+      const addr=document.createElement('div'); addr.style.cssText='display:flex;flex-direction:column;gap:6px';
+      const r1=document.createElement('div'); r1.style.cssText='display:flex;gap:6px';
+      const n=document.createElement('div'); n.className='pv-seg'; n.style.cssText=`width:88px;border-color:${borderColor};border-radius:8px`; n.textContent='No.';
+      const s=document.createElement('div'); s.className='pv-input'; s.style.cssText=`flex:1;border-color:${borderColor};border-radius:8px`;
+      r1.appendChild(n); r1.appendChild(s); addr.appendChild(r1);
+      const r2=document.createElement('div'); r2.style.cssText='display:flex;gap:6px';
+      const u=document.createElement('div'); u.className='pv-seg'; u.style.cssText=`width:110px;border-color:${borderColor};border-radius:8px`; u.textContent='Apt/Unit';
+      const oh=document.createElement('span'); oh.style.cssText='font-size:12px;color:#bbb;padding-left:4px;align-self:center'; oh.textContent='optional';
+      r2.appendChild(u); r2.appendChild(oh); addr.appendChild(r2);
+      wrap.appendChild(addr);
+    } else if(f.type==='city-province'){
+      const r=document.createElement('div'); r.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px';
+      const c=document.createElement('div'); c.className='pv-input'; c.style.cssText=`border-color:${borderColor};border-radius:8px`;
+      const p=document.createElement('div'); p.className='pv-input'; p.style.cssText=`border-color:${borderColor};border-radius:8px`;
+      r.appendChild(c); r.appendChild(p); wrap.appendChild(r);
+    } else if(f.type==='radio'||f.type==='checkbox'){
+      (f.options||[]).forEach(o=>{
+        const row=document.createElement('div'); row.className='pv-option'; row.style.cssText=`border-color:${borderColor};border-radius:8px;margin-bottom:6px`;
+        const indicator=document.createElement('div');
+        indicator.className=f.type==='radio'?'pv-dot':'pv-box'; indicator.style.borderColor=borderColor;
+        const lbl2=document.createElement('span'); lbl2.className='pv-opt-label'; lbl2.textContent=o.label;
+        row.appendChild(indicator); row.appendChild(lbl2); wrap.appendChild(row);
+      });
+    } else if(f.type==='dropdown'){
+      const inp=document.createElement('div'); inp.className='pv-input';
+      inp.style.cssText=`border-color:${borderColor};border-radius:8px;display:flex;align-items:center;padding:0 12px;font-size:13px;color:#bbb`; inp.textContent='Select…';
+      wrap.appendChild(inp);
+    }
+    container.appendChild(wrap);
+  });
+}
+
+/* ── AI Import ── */
+const dropZone=document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('drag-active'); });
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-active'));
+dropZone.addEventListener('drop', e=>{ e.preventDefault(); dropZone.classList.remove('drag-active'); const f=e.dataTransfer.files[0]; if(f&&f.type.startsWith('image/')) loadImageFile(f); });
+function handleFileSelect(input){ if(input.files[0]) loadImageFile(input.files[0]); }
+function loadImageFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{ const d=e.target.result; pendingImageBase64=d.split(',')[1]; pendingImageType=file.type; const p=document.getElementById('drop-preview'); p.src=d; p.style.display='block'; };
+  reader.readAsDataURL(file);
+}
+function loadImageBlob(blob){
+  pendingImageType=blob.type||'image/png';
+  const reader=new FileReader();
+  reader.onload=e=>{ const d=e.target.result; pendingImageBase64=d.split(',')[1]; const p=document.getElementById('drop-preview'); p.src=d; p.style.display='block'; };
+  reader.readAsDataURL(blob);
+}
+/* Global paste handler — works anywhere on the page */
+document.addEventListener('paste', e=>{
+  const items=e.clipboardData&&e.clipboardData.items;
+  if(!items) return;
+  for(let i=0;i<items.length;i++){
+    if(items[i].type.startsWith('image/')){
+      e.preventDefault();
+      const blob=items[i].getAsFile();
+      if(blob){ loadImageBlob(blob); document.querySelector('[data-tab="ai"]').click(); }
+      return;
+    }
+  }
+});
+
+async function runAIImport(){
+  const key=localStorage.getItem('fb_api_key')||'';
+  if(!key||!key.startsWith('sk-ant-')){ alert('Please enter your Anthropic API key in the Settings tab first.'); document.querySelector('[data-tab="settings"]').click(); return; }
+  const url=document.getElementById('ai-url').value.trim();
+  const instructions=document.getElementById('ai-instructions').value.trim();
+  if(!pendingImageBase64&&!url){ alert('Please drop an image or enter a URL first.'); return; }
+
+  document.getElementById('ai-thinking').classList.add('active');
+
+  const systemPrompt=`You are a form field analyser. Return ONLY valid JSON, no markdown, no explanation. Structure:
+{"title":"...","subtitle":"...","fields":[{"id":"short-id","label":"...","type":"alpha-full|free-full|split|address|city-province|radio|checkbox|dropdown","pattern":"NN-MMM-NNNN","required":true,"options":[{"value":"val","label":"Label","required":true}]}]}
+Types: alpha-full=letters only, free-full=any text, split=segmented with pattern (N=digit A=letter MMM=month - space .=separators), address=street number+name+unit, city-province=city+province dropdown, radio=pick one, checkbox=pick many, dropdown=select list.
+Common patterns: phone=NNN NNN NNNN, date=NN-MMM-NNNN, postal=ANA NAN, SIN=NNN NNN NNN, RAMQ=AAAA NNNNNN NN.
+Only include pattern for split. Only include options for radio/checkbox.${instructions?'\nExtra: '+instructions:''}`;
+
+  const messages=pendingImageBase64
+    ?[{role:'user',content:[{type:'image',source:{type:'base64',media_type:pendingImageType,data:pendingImageBase64}},{type:'text',text:'Analyse this form and return the JSON field definition.'}]}]
+    :[{role:'user',content:`Analyse the form at this URL and return the JSON field definition: ${url}`}];
+
+  try {
+    const response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:systemPrompt,messages})
+    });
+    if(!response.ok){ const e=await response.json(); throw new Error(e.error?.message||`HTTP ${response.status}`); }
+    const data=await response.json();
+    const text=data.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(text);
+    if(parsed.title)    document.getElementById('form-title').value=parsed.title;
+    if(parsed.subtitle) document.getElementById('form-subtitle').value=parsed.subtitle;
+    if(parsed.fields)   fields=parsed.fields;
+    renderFieldList(); refreshPreview();
+    document.querySelector('[data-tab="fields"]').click();
+  } catch(e){
+    alert('Import failed: '+e.message);
+  } finally {
+    document.getElementById('ai-thinking').classList.remove('active');
+  }
+}
+
+/* ── Export ── */
+function buildFormJSON(){
+  return {
+    title:document.getElementById('form-title').value,
+    subtitle:document.getElementById('form-subtitle').value,
+    submitLabel:document.getElementById('form-submit-label').value,
+    fields:fields.map(f=>{ const o={id:f.id,label:f.label,type:f.type,required:f.required!==false}; if(f.pattern) o.pattern=f.pattern; if(f.options) o.options=f.options; return o; }),
+    optionSets:{provinces:PROVINCES}
+  };
+}
+function buildThemeJSON(){
+  return {
+    background:document.getElementById('th-bg').value,
+    cardColor:document.getElementById('th-card').value,
+    cardWidth:document.getElementById('th-width').value,
+    cornerRadius:document.getElementById('th-radius').value,
+    fontFamily:document.getElementById('th-font').value,
+    fontSizeBase:'16',
+    titleColor:document.getElementById('th-title').value,
+    subtitleColor:'#888888',
+    labelColor:document.getElementById('th-label').value,
+    fieldBackground:'#fafafa',
+    fieldBorder:document.getElementById('th-border').value,
+    fieldFocusBorder:document.getElementById('th-focus').value,
+    fieldErrorBorder:'#e05252',
+    buttonLabel:document.getElementById('form-submit-label').value,
+    buttonColor:document.getElementById('th-btn').value,
+    buttonText:document.getElementById('th-btn-text').value,
+    logo:document.getElementById('th-logo').value,
+    logoWidth:document.getElementById('th-logo-width').value,
+    logoPosition:document.getElementById('th-logo-pos').value,
+    darkMode:document.getElementById('th-dark').value
+  };
+}
+function dlFile(content,filename,mime){
+  const blob=new Blob([content],{type:mime});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+}
+function downloadFormJSON()  { dlFile(JSON.stringify(buildFormJSON(),null,2),'form.json','application/json'); }
+function downloadThemeJSON() { dlFile(JSON.stringify(buildThemeJSON(),null,2),'theme.json','application/json'); }
+function downloadEngine(){
+  fetch('index.html').then(r=>{ if(!r.ok) throw new Error(); return r.blob(); })
+    .then(blob=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='index.html'; a.click(); })
+    .catch(()=>alert('index.html not found in the same folder as this builder.\nDownload it separately from the chat where it was generated.'));
+}
+function downloadAll(){ downloadFormJSON(); setTimeout(downloadThemeJSON,400); }
+
+/* ── Init ── */
+loadAPIKey();
+renderFieldList();
+refreshPreview();
+</script>
+</body>
+</html>
