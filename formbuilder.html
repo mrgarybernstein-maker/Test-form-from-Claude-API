@@ -213,8 +213,9 @@ input[type=color]{width:100%;height:38px;border:1.5px solid #e0e0e0;border-radiu
 
     <!-- PUBLISH -->
     <div class="tab-panel" id="tab-publish">
-      <p class="hint" style="margin-bottom:12px">Creates a new GitHub repository, pushes all form files, enables GitHub Pages, and gives you the live URL — all in one click.</p>
-      <div class="form-row"><label>Repository name</label><input type="text" id="pub-repo" placeholder="e.g. my-registration-form"></div>
+      <p class="hint" style="margin-bottom:8px">Creates a new GitHub repository, pushes all form files, enables GitHub Pages, and gives you the live URL — all in one click.</p>
+      <div id="pub-auth-check" style="margin-bottom:12px;font-size:12px;padding:8px 10px;border-radius:8px;background:#fafafa;border:1px solid #e8e8e8"></div>
+      <div class="form-row"><label>Repository name</label><input type="text" id="pub-repo" placeholder="e.g. my-registration-form" oninput="this.value=this.value.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9\-_]/g,'')"><div class="hint">Letters, numbers, hyphens only — spaces converted automatically</div></div>
       <div class="form-row"><label>Description (optional)</label><input type="text" id="pub-desc" placeholder="e.g. Patient registration form"></div>
       <div class="form-row">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -367,9 +368,11 @@ function saveGHToken(){
   localStorage.setItem('fb_gh_token',t);
   const s=document.getElementById('gh-token-status');
   s.textContent=t?'Token saved.':'';
+  updateAuthCheck();
 }
 function saveGHUsername(){
   localStorage.setItem('fb_gh_username',document.getElementById('gh-username-input').value.trim());
+  updateAuthCheck();
 }
 function loadGHSettings(){
   const t=localStorage.getItem('fb_gh_token')||'';
@@ -377,6 +380,15 @@ function loadGHSettings(){
   document.getElementById('gh-token-input').value=t;
   document.getElementById('gh-username-input').value=u;
   if(t) document.getElementById('gh-token-status').textContent='Token saved.';
+  updateAuthCheck();
+}
+function updateAuthCheck(){
+  const t=localStorage.getItem('fb_gh_token')||'';
+  const u=localStorage.getItem('fb_gh_username')||'';
+  const el=document.getElementById('pub-auth-check');
+  if(!el) return;
+  if(t&&u) el.innerHTML=`<span style="color:#2a9a5a">✓ Ready to publish as <strong>${u}</strong></span>`;
+  else el.innerHTML=`<span style="color:#e05252">⚠ GitHub token and username not set — go to <strong>⚙ Settings</strong> tab (scroll right)</span>`;
 }
 
 /* ── Publish to GitHub ── */
@@ -395,9 +407,9 @@ async function publishToGitHub(){
   const desc=document.getElementById('pub-desc').value.trim();
   const isPrivate=document.getElementById('pub-private').checked;
 
-  if(!token){alert('Please enter your GitHub Personal Access Token in Settings first.');document.querySelector('[data-tab="settings"]').click();return;}
-  if(!username){alert('Please enter your GitHub username in Settings first.');document.querySelector('[data-tab="settings"]').click();return;}
-  if(!repoName){alert('Please enter a repository name.');return;}
+  if(!token){alert('Please enter your GitHub Personal Access Token in the ⚙ Settings tab first. Scroll the tab bar to the right to find it.');document.querySelector('[data-tab="settings"]').click();return;}
+  if(!username){alert('Please enter your GitHub username in the ⚙ Settings tab first. Scroll the tab bar to the right to find it.');document.querySelector('[data-tab="settings"]').click();return;}
+  if(!repoName){alert('Please enter a repository name (no spaces).');return;}
   if(!fields.length){alert('Please add at least one field before publishing.');return;}
 
   const btn=document.getElementById('pub-btn');
