@@ -273,7 +273,8 @@ input[type=color]{width:100%;height:38px;border:1.5px solid #e0e0e0;border-radiu
       <label>Type</label>
       <select id="f-type" onchange="onTypeChange()">
         <option value="alpha-full">Text — letters only (names)</option>
-        <option value="free-full">Text — any characters (email, notes)</option>
+        <option value="free-full">Text — any characters (notes)</option>
+        <option value="email">Email address (@ keyboard)</option>
         <option value="split">Segmented — driven by a pattern</option>
         <option value="address">Address (number + street + unit)</option>
         <option value="city-province">City + Province dropdown</option>
@@ -323,8 +324,8 @@ const PROVINCES = [
   {value:'YT',label:'YT – Yukon'}
 ];
 
-const TYPE_ICONS  = {'alpha-full':'🔤','free-full':'✏️','split':'🔢','address':'🏠','city-province':'🏙️','radio':'🔘','checkbox':'☑️','dropdown':'▾'};
-const TYPE_LABELS = {'alpha-full':'Letters only','free-full':'Free text','split':'Segmented','address':'Address','city-province':'City + Province','radio':'Radio','checkbox':'Checkboxes','dropdown':'Dropdown'};
+const TYPE_ICONS  = {'alpha-full':'🔤','free-full':'✏️','email':'📧','split':'🔢','address':'🏠','city-province':'🏙️','radio':'🔘','checkbox':'☑️','dropdown':'▾'};
+const TYPE_LABELS = {'alpha-full':'Letters only','free-full':'Free text','email':'Email address','split':'Segmented','address':'Address','city-province':'City + Province','radio':'Radio','checkbox':'Checkboxes','dropdown':'Dropdown'};
 
 /* ── Tabs ── */
 document.querySelectorAll('.tab').forEach(tab => {
@@ -436,8 +437,11 @@ async function publishToGitHub(){
   const b64=str=>btoa(unescape(encodeURIComponent(str)));
 
   try {
-    // Step 1: Create repo
-    stepSet('ps-create','active','Creating repository…');
+    // Step 1: Verify token then create repo
+    stepSet('ps-create','active','Verifying token…');
+    const userInfo = await ghAPI('/user','GET');
+    const actualUsername = userInfo.login;
+    stepSet('ps-create','active',`Creating repository for ${actualUsername}…`);
     await ghAPI('/user/repos','POST',{name:repoName,description:desc,private:isPrivate,auto_init:true});
     stepSet('ps-create','done','Repository created ✓');
 
@@ -668,7 +672,7 @@ function refreshPreview() {
     const lbl=document.createElement('div'); lbl.className='pv-label'; lbl.textContent=f.label; lbl.style.color=labelColor;
     wrap.appendChild(lbl);
 
-    if(f.type==='alpha-full'||f.type==='free-full'){
+    if(f.type==='alpha-full'||f.type==='free-full'||f.type==='email'){
       const inp=document.createElement('div'); inp.className='pv-input'; inp.style.cssText=`border-color:${borderColor};border-radius:${radius}px`; wrap.appendChild(inp);
     } else if(f.type==='split'){
       const row=document.createElement('div'); row.className='pv-seg-row';
@@ -758,8 +762,9 @@ async function runAIImport(){
 
   const systemPrompt=`You are a form field analyser. Return ONLY valid JSON, no markdown, no explanation. Structure:
 {"title":"...","subtitle":"...","fields":[{"id":"short-id","label":"...","type":"alpha-full|free-full|split|address|city-province|radio|checkbox|dropdown","pattern":"NN-MMM-NNNN","required":true,"options":[{"value":"val","label":"Label","required":true}]}]}
-Types: alpha-full=letters only, free-full=any text, split=segmented with pattern (N=digit A=letter MMM=month - space .=separators), address=street number+name+unit, city-province=city+province dropdown, radio=pick one, checkbox=pick many, dropdown=select list.
+Types: alpha-full=letters only, free-full=any text, email=email address (special keyboard), split=segmented with pattern (N=digit A=letter MMM=month - space .=separators), address=street number+name+unit, city-province=city+province dropdown, radio=pick one, checkbox=pick many, dropdown=select list.
 Common patterns: phone=NNN NNN NNNN, date=NN-MMM-NNNN, postal=ANA NAN, SIN=NNN NNN NNN, RAMQ=AAAA NNNNNN NN.
+IMPORTANT: Always use type=email for any email field. Always use type=split with pattern NNN NNN NNNN for any phone/mobile/telephone field. Always use type=split with pattern NN-MMM-NNNN for any date of birth field.
 Only include pattern for split. Only include options for radio/checkbox.${instructions?'\nExtra: '+instructions:''}`;
 
   const messages=pendingImageBase64

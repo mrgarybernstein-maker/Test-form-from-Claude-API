@@ -364,6 +364,35 @@ function buildFullField(def,container,focusChain,optionSets,register,alphaOnly){
   register(def.id,{ elements:[inp], getValue:()=>inp.value.trim(), setValue:v=>{inp.value=v;clearErr(inp);update();}, clearErrors:()=>clearErr(inp), validate:()=>{ const v=inp.value.trim(); if(!v) return {el:inp,msg:`${def.label} is required`}; if(alphaOnly&&!/^[a-zA-Z\s'\-]+$/.test(v)) return {el:inp,msg:`${def.label} must contain letters only`}; return null; }, storeKey:'reg_'+def.id, populateFn:v=>{inp.value=v;clearErr(inp);update();} });
 }
 
+function buildEmailField(def,container,focusChain,optionSets,register){
+  const inp=makeInput('seg-full',{
+    type:'email',
+    inputmode:'email',
+    autocapitalize:'off',
+    autocorrect:'off',
+    spellcheck:'false',
+    autocomplete:'email',
+    'aria-label':def.label
+  });
+  const {wrap,update}=makeFloatWrap(inp,def.label);
+  container.appendChild(wrap); focusChain.push(inp);
+  inp.addEventListener('input',()=>{ clearErr(inp); });
+  register(def.id,{
+    elements:[inp],
+    getValue:()=>inp.value.trim(),
+    setValue:v=>{inp.value=v;clearErr(inp);update();},
+    clearErrors:()=>clearErr(inp),
+    validate:()=>{
+      const v=inp.value.trim();
+      if(!v&&def.required!==false) return {el:inp,msg:`${def.label} is required`};
+      if(v&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return {el:inp,msg:`${def.label}: please enter a valid email address`};
+      return null;
+    },
+    storeKey:'reg_'+def.id,
+    populateFn:v=>{inp.value=v;clearErr(inp);update();}
+  });
+}
+
 function buildAddressField(def,container,focusChain,optionSets,register){
   const row1=document.createElement('div'); row1.className='field-row'; row1.style.marginBottom='8px';
   const numInp=makeInput('seg',{type:'text',inputmode:'numeric',maxlength:'6',placeholder:'No.',autocomplete:'off',autocorrect:'off',spellcheck:'false','aria-label':'Street number',style:'width:88px;'});
@@ -542,7 +571,7 @@ async function init(){
   function register(id,obj){ fieldRegistry[id]=obj; }
 
   const container=document.getElementById('form-fields');
-  const floatingTypes=new Set(['alpha-full','free-full','dropdown','city-province']);
+  const floatingTypes=new Set(['alpha-full','free-full','email','dropdown','city-province']);
 
   (formDef.fields||[]).forEach((def,idx)=>{
     if(idx>0){ const hr=document.createElement('hr'); hr.className='divider'; container.appendChild(hr); }
