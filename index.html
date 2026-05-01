@@ -302,6 +302,27 @@ function makeFloatWrap(inp,labelText){
 
 /* Helpers */
 function clearErr(el)    { if(el&&el.classList) el.classList.remove('error'); }
+
+function showFieldError(fieldId, msg){
+  let errEl = document.getElementById('ferr-'+fieldId);
+  if(!errEl){
+    errEl = document.createElement('p');
+    errEl.id = 'ferr-'+fieldId;
+    errEl.style.cssText = 'font-size:12px;color:#c0392b;margin-top:5px;line-height:1.4;display:none';
+    /* Insert before chips div so it appears directly under the field */
+    const chipsDiv = document.getElementById('chips-'+fieldId);
+    if(chipsDiv && chipsDiv.parentNode){
+      chipsDiv.parentNode.insertBefore(errEl, chipsDiv);
+    }
+  }
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+}
+
+function clearFieldError(fieldId){
+  const errEl = document.getElementById('ferr-'+fieldId);
+  if(errEl){ errEl.textContent=''; errEl.style.display='none'; }
+}
 function showMsg(t,type) { const m=document.getElementById('msg'); m.textContent=t; m.className='msg visible '+type; }
 function clearMsg()      { const m=document.getElementById('msg'); m.textContent=''; m.className='msg'; }
 
@@ -337,7 +358,52 @@ function buildSplitField(def,container,focusChain,optionSets,register){
     const nextEl=inputs[idx+1]?.el||null; const prevEl=inputs[idx-1]?.el||null;
     el.addEventListener('input',()=>{ let v=el.value; if((tok.isAlpha||tok.isMonth)&&!tok.isNum) v=v.replace(/[^a-zA-Z]/g,'').toUpperCase(); if(tok.isNum&&!tok.isAlpha) v=v.replace(/\D/g,''); el.value=v; clearErr(el); if(v.length===tok.chars&&nextEl) nextEl.focus(); });
     el.addEventListener('keydown',e=>{ if(e.key==='Backspace'&&el.value===''&&prevEl){e.preventDefault();prevEl.focus();} });
-    if(tok.isMonth){ el.addEventListener('blur',()=>{ const v=el.value.toUpperCase(); if(v.length===3&&!MONTHS.includes(v)){el.classList.add('error');showMsg('Invalid month — use JAN, FEB … DEC','err');} }); el.addEventListener('focus',()=>{ clearErr(el); clearMsg(); }); }
+    if(tok.isMonth){
+      el.addEventListener('blur',()=>{
+        const v=el.value.toUpperCase();
+        if(v.length===3&&!MONTHS.includes(v)){el.classList.add('error');showMsg('Invalid month — use JAN, FEB … DEC','err');}
+      });
+      el.addEventListener('focus',()=>{ clearErr(el); clearMsg(); clearFieldError(def.id); });
+    }
+    /* Year blur — validate full date inline */
+    if(tok.isNum && idx === inputs.length-1){
+      el.addEventListener('blur',()=>{
+        const monthSeg2=inputs.find(({tok:t})=>t.isMonth);
+        const numSegs2=inputs.filter(({tok:t})=>t.isNum);
+        if(!monthSeg2||numSegs2.length<2) return;
+        const mon=monthSeg2.el.value.toUpperCase();
+        const day=parseInt(numSegs2[0].el.value);
+        const yr=parseInt(el.value);
+        if(!MONTHS.includes(mon)||isNaN(day)||isNaN(yr)||yr<1000) return;
+        /* Days in month check */
+        const max=maxDaysInMonth(mon,yr);
+        if(day<1||day>max){
+          numSegs2[0].el.classList.add('error');
+          showFieldError(def.id, `${mon} ${yr} only has ${max} days`);
+          return;
+        }
+        /* Future date check for DOB */
+        const lbl=(def.label||'').toLowerCase();
+        const isDOB=lbl.includes('birth')||lbl.includes('dob')||lbl.includes('born')||lbl.includes('birthday');
+        if(isDOB){
+          const entered=new Date(yr, MONTHS.indexOf(mon), day);
+          const today=new Date(); today.setHours(0,0,0,0);
+          if(entered>today){
+            el.classList.add('error');
+            showFieldError(def.id,'Date of birth cannot be in the future');
+            return;
+          }
+          const minYear=today.getFullYear()-130;
+          if(yr<minYear){
+            el.classList.add('error');
+            showFieldError(def.id,`Please check the year — ${yr} seems too far back`);
+            return;
+          }
+        }
+        clearFieldError(def.id);
+      });
+      el.addEventListener('focus',()=>{ clearErr(el); clearFieldError(def.id); });
+    }
     focusChain.push(el);
   });
   function getValue(){ let out='',si=0; tokens.forEach(tok=>{ if(tok.kind==='sep'){out+=tok.char;}else{out+=(inputs[si++]?.el.value||'');} }); return out; }
@@ -350,7 +416,27 @@ function buildSplitField(def,container,focusChain,optionSets,register){
       else if(tok.isNum){ if(v.length!==tok.chars||!/^\d+$/.test(v)) return {el,msg:`${def.label}: ${tok.chars} digit${tok.chars>1?'s':''} required here`}; }
     }
     const monthSeg=inputs.find(({tok})=>tok.isMonth); const numSegs=inputs.filter(({tok})=>tok.isNum);
-    if(monthSeg&&numSegs.length>=2){ const mon=monthSeg.el.value.toUpperCase(),day=parseInt(numSegs[0].el.value),yr=parseInt(numSegs[numSegs.length-1].el.value); if(MONTHS.includes(mon)&&!isNaN(day)&&!isNaN(yr)&&yr>1000){ const max=maxDaysInMonth(mon,yr); if(day<1||day>max) return {el:numSegs[0].el,msg:`${mon} ${yr} only has ${max} days`}; } }
+    if(monthSeg&&numSegs.length>=2){
+      const mon=monthSeg.el.value.toUpperCase();
+      const day=parseInt(numSegs[0].el.value);
+      const yr=parseInt(numSegs[numSegs.length-1].el.value);
+      if(MONTHS.includes(mon)&&!isNaN(day)&&!isNaN(yr)&&yr>1000){
+        /* Check days in month */
+        const max=maxDaysInMonth(mon,yr);
+        if(day<1||day>max) return {el:numSegs[0].el,msg:`${mon} ${yr} only has ${max} days`};
+        /* Check date is not in the future — only for fields labelled as date of birth */
+        const lbl=(def.label||'').toLowerCase();
+        const isDOB=lbl.includes('birth')||lbl.includes('dob')||lbl.includes('born')||lbl.includes('birthday');
+        if(isDOB){
+          const entered=new Date(yr, MONTHS.indexOf(mon), day);
+          const today=new Date(); today.setHours(0,0,0,0);
+          if(entered>today) return {el:numSegs[numSegs.length-1].el,msg:`Date of birth cannot be in the future`};
+          /* Also check for unreasonably old dates */
+          const minYear=today.getFullYear()-130;
+          if(yr<minYear) return {el:numSegs[numSegs.length-1].el,msg:`Please check the year — ${yr} seems too far back`};
+        }
+      }
+    }
     return null;
   }
   register(def.id,{ elements:inputs.map(({el})=>el), getValue, setValue, clearErrors:()=>inputs.forEach(({el})=>clearErr(el)), validate, storeKey:'reg_'+def.id, populateFn:setValue });
@@ -371,12 +457,65 @@ function buildEmailField(def,container,focusChain,optionSets,register){
     autocapitalize:'off',
     autocorrect:'off',
     spellcheck:'false',
-    autocomplete:'email',
+    autocomplete: def.confirmOf ? 'off' : 'email',
     'aria-label':def.label
   });
   const {wrap,update}=makeFloatWrap(inp,def.label);
   container.appendChild(wrap); focusChain.push(inp);
-  inp.addEventListener('input',()=>{ clearErr(inp); });
+
+  inp.addEventListener('input',()=>{
+    clearErr(inp);
+    clearFieldError(def.id);
+    /* If this is the source field, clear error on confirm field too */
+    if(def.id){
+      const confirmEl=document.querySelector(`[data-confirm-of="${def.id}"]`);
+      if(confirmEl){ clearErr(confirmEl); clearFieldError(def.confirmOf||''); }
+    }
+  });
+  inp.addEventListener('blur',()=>{
+    const confirmVal = inp.value.trim();
+    if(!confirmVal) return;
+
+    /* Find the source email field using DOM only — no closure dependencies */
+    /* Strategy: find all email/text inputs before this one in the form */
+    const allInputs = Array.from(document.querySelectorAll('input[type="email"], input[type="text"].seg-full'));
+    const myIndex  = allInputs.indexOf(inp);
+    if(myIndex <= 0) return;
+
+    /* Check if this field looks like a confirmation field */
+    const lbl = (def.label||'').toLowerCase();
+    const isConfirm = def.confirmOf ||
+      lbl.includes('confirm') || lbl.includes('verif') ||
+      lbl.includes('re-enter') || lbl.includes('repeat');
+    if(!isConfirm) return;
+
+    /* Find the nearest preceding email-type input */
+    let sourceInp = null;
+    for(let i = myIndex-1; i >= 0; i--){
+      if(allInputs[i].type==='email' || allInputs[i].inputMode==='email'){
+        sourceInp = allInputs[i]; break;
+      }
+      /* Also accept text inputs that look like email fields */
+      const prevLbl = (allInputs[i].getAttribute('aria-label')||'').toLowerCase();
+      if(prevLbl.includes('email')){ sourceInp = allInputs[i]; break; }
+    }
+    if(!sourceInp) return;
+
+    const sourceVal = sourceInp.value.trim();
+    if(!sourceVal) return;
+
+    if(confirmVal !== sourceVal){
+      inp.classList.add('error');
+      showFieldError(def.id, 'Does not match — please check both email addresses');
+    } else {
+      clearErr(inp);
+      clearFieldError(def.id);
+    }
+  });
+
+  /* Mark confirm fields so we can find them */
+  if(def.confirmOf) inp.dataset.confirmOf=def.confirmOf;
+
   register(def.id,{
     elements:[inp],
     getValue:()=>inp.value.trim(),
@@ -386,10 +525,18 @@ function buildEmailField(def,container,focusChain,optionSets,register){
       const v=inp.value.trim();
       if(!v&&def.required!==false) return {el:inp,msg:`${def.label} is required`};
       if(v&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return {el:inp,msg:`${def.label}: please enter a valid email address`};
+      /* Confirmation check */
+      if(def.confirmOf){
+        const sourceReg=Object.values(arguments[4]||{}).find ? null : null;
+        /* Find source field value via DOM */
+        const sourceInp=document.querySelector(`input[aria-label]`);
+        /* Use fieldRegistry via closure — checked in validateAll */
+      }
       return null;
     },
     storeKey:'reg_'+def.id,
-    populateFn:v=>{inp.value=v;clearErr(inp);update();}
+    populateFn:v=>{inp.value=v;clearErr(inp);update();},
+    confirmOf: def.confirmOf||null
   });
 }
 
@@ -589,6 +736,7 @@ async function init(){
     switch(def.type){
       case 'alpha-full':    buildFullField(...args,true);    break;
       case 'free-full':     buildFullField(...args,false);   break;
+      case 'email':         buildEmailField(...args);        break;
       case 'split':         buildSplitField(...args);        break;
       case 'address':       buildAddressField(...args);      break;
       case 'city-province': buildCityProvinceField(...args); break;
@@ -622,6 +770,55 @@ async function init(){
       const reg=fieldRegistry[def.id]; if(!reg) continue;
       const err=reg.validate(); if(err) return err;
     }
+
+    /* Email confirmation check — two methods:
+       Method 1: explicit confirmOf property in form.json
+       Method 2: smart detection by label name (confirm/confirmation/verify) */
+    const emailFields = (formDef.fields||[]).filter(f=>f.type==='email'||f.type==='free-full');
+
+    for(const def of (formDef.fields||[])){
+      const reg=fieldRegistry[def.id]; if(!reg) continue;
+
+      /* Method 1: explicit confirmOf */
+      if(def.confirmOf){
+        const sourceReg=fieldRegistry[def.confirmOf];
+        if(!sourceReg) continue;
+        const confirmVal=reg.getValue();
+        const sourceVal=sourceReg.getValue();
+        if(sourceVal){
+          const el=reg.elements[0];
+          if(!confirmVal) return {el, msg:`${def.label} is required`};
+          if(confirmVal!==sourceVal) return {el, msg:`${def.label}: does not match — please check both email addresses`};
+        }
+        continue;
+      }
+
+      /* Method 2: smart label detection — field label contains confirm/confirmation/verify */
+      const lbl=(def.label||'').toLowerCase();
+      const isConfirmLabel=lbl.includes('confirm')||lbl.includes('verification')||lbl.includes('verify')||lbl.includes('re-enter')||lbl.includes('repeat');
+      if(!isConfirmLabel) continue;
+      if(def.type!=='email'&&def.type!=='free-full') continue;
+
+      /* Find the preceding email field */
+      const fields=formDef.fields||[];
+      const myIdx=fields.findIndex(f=>f.id===def.id);
+      let sourceDef=null;
+      for(let i=myIdx-1;i>=0;i--){
+        if(fields[i].type==='email'||fields[i].type==='free-full'){
+          sourceDef=fields[i]; break;
+        }
+      }
+      if(!sourceDef) continue;
+      const sourceReg=fieldRegistry[sourceDef.id]; if(!sourceReg) continue;
+
+      const confirmVal=reg.getValue();
+      const sourceVal=sourceReg.getValue();
+      if(sourceVal){
+        const el=reg.elements[0];
+        if(!confirmVal) return {el, msg:`${def.label} is required`};
+        if(confirmVal!==sourceVal) return {el, msg:`${def.label}: does not match — please check both email addresses`};
+      }
+    }
     return null;
   }
 
@@ -632,13 +829,26 @@ async function init(){
     if(err){
       if(err.el&&err.el.focus) err.el.focus();
       else if(err.el) err.el.scrollIntoView({behavior:'smooth',block:'center'});
+      /* Also show inline error if we can find which field this belongs to */
+      if(err.el){
+        /* Find the field id by checking which registry element matches */
+        for(const [id,reg] of Object.entries(fieldRegistry)){
+          if(reg.elements.includes(err.el)){
+            showFieldError(id, err.msg);
+            break;
+          }
+        }
+      }
       showMsg(err.msg,'err'); return;
     }
     Object.entries(fieldRegistry).forEach(([id,reg])=>{ const v=reg.getValue(); if(v&&v.replace(/[\|\s\-,]/g,'')) addToHistory(reg.storeKey,v); });
     renderAll();
     const parts=(formDef.fields||[]).map(def=>{ const reg=fieldRegistry[def.id]; if(!reg) return null; return(reg.displayValue?reg.displayValue():reg.getValue())||null; }).filter(Boolean);
     showMsg('Saved: '+parts.join(' · '),'ok');
-    Object.values(fieldRegistry).forEach(reg=>{ reg.elements.forEach(el=>{ if(el.tagName==='INPUT'||el.tagName==='SELECT') el.value=''; else el.classList.remove('selected','checked'); }); });
+    Object.values(fieldRegistry).forEach(reg=>{
+      reg.elements.forEach(el=>{ if(el.tagName==='INPUT'||el.tagName==='SELECT') el.value=''; else el.classList.remove('selected','checked'); });
+      clearFieldError(reg.storeKey.replace('reg_',''));
+    });
     document.querySelectorAll('.fl-wrap').forEach(w=>w.classList.remove('has-value'));
     if(focusChain[0]) focusChain[0].focus();
   }
