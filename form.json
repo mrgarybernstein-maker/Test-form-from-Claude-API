@@ -38,8 +38,9 @@
     {
       "id": "age",
       "label": "Age",
-      "type": "free-full",
-      "required": false
+      "type": "split",
+      "required": false,
+      "pattern": "NN"
     },
     {
       "id": "sex-at-birth",
