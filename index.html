@@ -401,6 +401,9 @@ function buildSplitField(def,container,focusChain,optionSets,register){
           }
         }
         clearFieldError(def.id);
+
+        /* Auto-calculate age if an age field exists */
+        if(window._autoFillAge) window._autoFillAge(mon, day, yr);
       });
       el.addEventListener('focus',()=>{ clearErr(el); clearFieldError(def.id); });
     }
@@ -716,6 +719,27 @@ async function init(){
   const optionSets={}; Object.assign(optionSets,formDef.optionSets||{});
   const fieldRegistry={}; const focusChain=[];
   function register(id,obj){ fieldRegistry[id]=obj; }
+
+  /* Auto-fill age from DOB */
+  window._autoFillAge = function autoFillAge(mon, day, yr){
+    if(!mon||!day||!yr||yr<1900) return;
+    if(!MONTHS.includes(mon.toUpperCase())) return;
+    const today=new Date();
+    const birth=new Date(yr, MONTHS.indexOf(mon.toUpperCase()), day);
+    if(birth>today) return;
+    let age=today.getFullYear()-birth.getFullYear();
+    const md=today.getMonth()-birth.getMonth();
+    if(md<0||(md===0&&today.getDate()<birth.getDate())) age--;
+    for(const def of (formDef.fields||[])){
+      const lbl=(def.label||'').toLowerCase();
+      if(!lbl.includes('age')) continue;
+      if(lbl.includes('message')||lbl.includes('page')||lbl.includes('stage')) continue;
+      const reg=fieldRegistry[def.id]; if(!reg) continue;
+      if(def.type!=='split'&&def.type!=='free-full') continue;
+      reg.setValue(String(age).padStart(2,'0'));
+      break;
+    }
+  }
 
   const container=document.getElementById('form-fields');
   const floatingTypes=new Set(['alpha-full','free-full','email','dropdown','city-province']);
